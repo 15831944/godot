@@ -37,6 +37,8 @@
 #include "core/project_settings.h"
 #include "core/version.h"
 
+static bool debug = false;
+
 //#define print_bl(m_what) print_line(m_what)
 #define print_bl(m_what) (void)(m_what)
 
@@ -123,7 +125,9 @@ StringName ResourceInteractiveLoaderBinary::_get_string() {
 Error ResourceInteractiveLoaderBinary::parse_variant(Variant &r_v) {
 
 	uint32_t type = f->get_32();
-	print_bl("find property of type: " + itos(type));
+	if (debug) {
+		print_line("find property of type: " + itos(type));
+	}
 
 	switch (type) {
 
@@ -371,7 +375,9 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant &r_v) {
 
 		} break;
 		case VARIANT_DICTIONARY: {
-
+			if (debug) {
+				print_line("convert dict");
+			}
 			uint32_t len = f->get_32();
 			Dictionary d; //last bit means shared
 			len &= 0x7FFFFFFF;
@@ -379,6 +385,10 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant &r_v) {
 				Variant key;
 				Error err = parse_variant(key);
 				ERR_FAIL_COND_V(err, ERR_FILE_CORRUPT);
+				if (debug) {
+					String str = key;
+					print_line("key : " + str);
+				}
 				Variant value;
 				err = parse_variant(value);
 				ERR_FAIL_COND_V(err, ERR_FILE_CORRUPT);
@@ -392,6 +402,9 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant &r_v) {
 			Array a; //last bit means shared
 			len &= 0x7FFFFFFF;
 			a.resize(len);
+			if (debug) {
+				print_line("convert array (" + itos(len) + ")");
+			}
 			for (uint32_t i = 0; i < len; i++) {
 				Variant val;
 				Error err = parse_variant(val);
@@ -404,7 +417,9 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant &r_v) {
 		case VARIANT_RAW_ARRAY: {
 
 			uint32_t len = f->get_32();
-
+			if (debug) {
+				print_line("convert array (" + itos(len) + ")");
+			}
 			PoolVector<uint8_t> array;
 			array.resize(len);
 			PoolVector<uint8_t>::Write w = array.write();
@@ -416,6 +431,9 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant &r_v) {
 		} break;
 		case VARIANT_INT_ARRAY: {
 
+			if (debug) {
+				print_line("convert int array");
+			}
 			uint32_t len = f->get_32();
 
 			PoolVector<int> array;
@@ -497,7 +515,7 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant &r_v) {
 			r_v = array;
 
 		} break;
-		case VARIANT_VECTOR3_ARRAY: {
+		/*case VARIANT_VECTOR3_ARRAY: {
 
 			uint32_t len = f->get_32();
 
@@ -522,9 +540,11 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant &r_v) {
 				ERR_FAIL_V(ERR_UNAVAILABLE);
 			}
 			w = PoolVector<Vector3>::Write();
+			print_line("first vertex : ");
+			print_line("\t " + array.read()[0]);
 			r_v = array;
 
-		} break;
+		} break;*/
 		case VARIANT_COLOR_ARRAY: {
 
 			uint32_t len = f->get_32();
@@ -694,6 +714,7 @@ Error ResourceInteractiveLoaderBinary::poll() {
 			//already loaded, don't do anything
 			stage++;
 			error = OK;
+			print_line("don't reload " + path);
 			return error;
 		}
 	} else {
@@ -707,7 +728,7 @@ Error ResourceInteractiveLoaderBinary::poll() {
 	f->seek(offset);
 
 	String t = get_unicode_string();
-
+	print_line("create node type : " + t + " at path : " + path);
 	Object *obj = ClassDB::instance(t);
 	if (!obj) {
 		error = ERR_FILE_CORRUPT;
@@ -735,6 +756,9 @@ Error ResourceInteractiveLoaderBinary::poll() {
 	for (int i = 0; i < pc; i++) {
 
 		StringName name = _get_string();
+		if (name == "surfaces/0") {
+			debug = true;
+		}
 
 		if (name == StringName()) {
 			error = ERR_FILE_CORRUPT;
@@ -748,6 +772,8 @@ Error ResourceInteractiveLoaderBinary::poll() {
 			return error;
 
 		res->set(name, value);
+
+		debug = false;
 	}
 #ifdef TOOLS_ENABLED
 	res->set_edited(false);

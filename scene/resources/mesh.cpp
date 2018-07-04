@@ -751,6 +751,11 @@ void ArrayMesh::_recompute_aabb() {
 
 void ArrayMesh::add_surface(uint32_t p_format, PrimitiveType p_primitive, const PoolVector<uint8_t> &p_array, int p_vertex_count, const PoolVector<uint8_t> &p_index_array, int p_index_count, const AABB &p_aabb, const Vector<PoolVector<uint8_t> > &p_blend_shapes, const Vector<AABB> &p_bone_aabbs) {
 
+	print_line("add surface, indices :");
+	for (unsigned short i = 0; i < p_index_count; ++i) {
+		print_line("\t" + itos(p_index_array[i]));
+	}
+
 	Surface s;
 	s.aabb = p_aabb;
 	s.is_2d = p_format & ARRAY_FLAG_USE_2D_VERTICES;
